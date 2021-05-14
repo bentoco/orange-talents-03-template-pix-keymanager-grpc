@@ -1,0 +1,11 @@
+micronaut:
+  application:
+    name: keyManager
+datasources:
+  default:
+    url: ${DB_URL:`jdbc:postgresql://localhost:5434/keymanager`}
+    driverClassName: org.postgresql.Driver
+    username: ${POSTGRES_USER:root}
+    password: ${POSTGRES_PASSWORD:root}
+    dialect: POSTGRES
+jpa.default.properties.hibernate.hbm2ddl.auto: update
