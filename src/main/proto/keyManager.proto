@@ -8,13 +8,27 @@ option objc_class_prefix = "HLW";
 package br.com.zup.edu;
 
 service KeyManagerService {
-  rpc send (KeyManagerRequest) returns (KeyManagerReply) {}
+  rpc registerKey (RegisterKeyRequest) returns (RegisterKeyResponse) {}
 }
 
-message KeyManagerRequest {
-  string name = 1;
+message RegisterKeyRequest {
+  string user_id = 1;
+  enum TypeKey{
+    RANDOM_KEY = 0;
+    CPF = 1;
+    PHONE_NUMBER = 2;
+    EMAIL = 3;
+  }
+  TypeKey type_key = 2;
+  string key_value = 3;
+  enum TypeAccount{
+    CONTA_CORRENTE = 0;
+    CONTA_POUPANCA = 1;
+  }
+  TypeAccount type_account = 4;
 }
 
-message KeyManagerReply {
-  string message = 1;
+message RegisterKeyResponse {
+  string pix_id = 1;
 }
+
