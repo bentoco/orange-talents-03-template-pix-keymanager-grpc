@@ -14,10 +14,11 @@ service KeyManagerService {
 message RegisterKeyRequest {
   string user_id = 1;
   enum TypeKey{
-    RANDOM_KEY = 0;
-    CPF = 1;
-    PHONE_NUMBER = 2;
-    EMAIL = 3;
+    UNKNOWN = 0;
+    RANDOM_KEY = 1;
+    CPF = 2;
+    PHONE_NUMBER = 3;
+    EMAIL = 4;
   }
   TypeKey type_key = 2;
   string key_value = 3;

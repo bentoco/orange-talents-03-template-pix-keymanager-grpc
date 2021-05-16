@@ -24,18 +24,45 @@ import javax.validation.ConstraintViolationException
 @Singleton
 class KeyRegisterServer(
     @Inject val repository: KeyRegisterRepository,  //2
-    @Inject val keyValeuValidator: KeyValueValidator
+    @Inject val keyValueValidator: KeyValueValidator
 ) : KeyManagerServiceGrpc.KeyManagerServiceImplBase() {
+
     override fun registerKey(request: RegisterKeyRequest?, responseObserver: StreamObserver<RegisterKeyResponse>?) {
+        //1
+        if (request?.keyValue == null && request?.typeKey == RegisterKeyRequest.TypeKey.UNKNOWN) {
+            responseObserver?.onError(
+                Status.INVALID_ARGUMENT
+                    .withDescription("invalid input data")
+                    .asRuntimeException()
+            )
+            return
+        }
+
+        val validatorResult: Boolean = keyValueValidator.validator(request!!.keyValue)
+        //1
+        if (!validatorResult && !request!!.typeKey.equals(RegisterKeyRequest.TypeKey.RANDOM_KEY)) {
+            responseObserver?.onError(
+                Status.INVALID_ARGUMENT
+                    .withDescription("invalid input key value")
+                    .asRuntimeException()
+            )
+            return
+        }
+
+        val existsKey = repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
+        //1
+        if (existsKey) {
+            responseObserver?.onError(
+                Status.ALREADY_EXISTS
+                    .withDescription("key value and type already register")
+                    .asRuntimeException()
+            )
+            return
+        }
 
         //1
-        if (request!!.typeKey.equals(RegisterKeyRequest.TypeKey.RANDOM_KEY)) {
-
-            val existsKey =
-                repository.existsByUserIdAndTypeKeyEquals(request.userId, RegisterKeyRequest.TypeKey.RANDOM_KEY)
-
-            //1
-            if (!existsKey) {
+        when (request.typeKey) {
+            RegisterKeyRequest.TypeKey.RANDOM_KEY -> {
                 val randomKey = randomKeyGanerator(request)
                 persistKey(randomKey, repository, responseObserver)
                 responseObserver?.onNext(
@@ -46,22 +73,8 @@ class KeyRegisterServer(
                 )
                 responseObserver?.onCompleted()
                 return
-            } else {
-                responseObserver?.onError(
-                    Status.ALREADY_EXISTS
-                        .withDescription("key value and type already register")
-                        .asRuntimeException()
-                )
-                return
             }
-        }
-        //1
-        if (request.keyValue.isNotBlank() || request.keyValue.isNotEmpty()) {
-
-            val validatorResult: Boolean = keyValeuValidator.validator(request.keyValue)
-            val existsKey = repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
-            //1
-            if (validatorResult && !existsKey) {
+            else -> {
                 val key = keyGenerator(request)
                 persistKey(key, repository, responseObserver)
                 responseObserver?.onNext(
@@ -73,19 +86,6 @@ class KeyRegisterServer(
                 responseObserver?.onCompleted()
                 return
             }
-            responseObserver?.onError(
-                Status.ALREADY_EXISTS
-                    .withDescription("key value and type already register")
-                    .asRuntimeException()
-            )
-            return
-        } else {
-            responseObserver?.onError(
-                Status.INVALID_ARGUMENT
-                    .withDescription("invalid input data")
-                    .asRuntimeException()
-            )
-            return
         }
     }
 }
