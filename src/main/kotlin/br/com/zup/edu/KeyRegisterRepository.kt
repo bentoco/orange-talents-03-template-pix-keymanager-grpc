@@ -11,5 +11,7 @@ interface KeyRegisterRepository: JpaRepository<KeyRegister, String>{
      * @param typeKey
      * @return check if already exists genereted keyVale to the type
      */
-    fun existsByUserIdAndTypeKeyEquals(userId: String, typeKey: RegisterKeyRequest.TypeKey): Boolean
+    fun existsByUserIdAndTypeKeyEquals(userId: String, typeKey: TypeKey): Boolean
+
+    fun findByKeyValue(keyValue: String?): Boolean
 }

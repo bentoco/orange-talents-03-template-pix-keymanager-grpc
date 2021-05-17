@@ -38,8 +38,8 @@ internal class KeyRegisterServerTest(
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(UUID.randomUUID().toString())
-                .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                .setTypeKey(TypeKey.RANDOM_KEY)
+                .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
         )
         //asserts
@@ -74,21 +74,21 @@ internal class KeyRegisterServerTest(
         fun getRequest() = listOf<KeyRegister>(
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.CPF,
+                TypeKey.CPF,
                 "12312312312",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_CORRENTE
             ),
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.EMAIL,
+                TypeKey.EMAIL,
                 "foo@mail.com",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_CORRENTE
             ),
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.PHONE_NUMBER,
+                TypeKey.PHONE_NUMBER,
                 "+55999999999",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_CORRENTE
             )
         )
 
@@ -98,9 +98,9 @@ internal class KeyRegisterServerTest(
     internal fun `must not register repeated random key`() {
         val randomKey = KeyRegister(
             UUID.randomUUID().toString(),
-            RegisterKeyRequest.TypeKey.RANDOM_KEY,
+            TypeKey.RANDOM_KEY,
             "",
-            RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+            TypeAccount.CONTA_CORRENTE
         )
         repository.save(randomKey)
 
@@ -109,8 +109,8 @@ internal class KeyRegisterServerTest(
                 RegisterKeyRequest
                     .newBuilder()
                     .setUserId(randomKey.id)
-                    .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                    .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                    .setTypeKey(TypeKey.RANDOM_KEY)
+                    .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                     .build()
             )
         }

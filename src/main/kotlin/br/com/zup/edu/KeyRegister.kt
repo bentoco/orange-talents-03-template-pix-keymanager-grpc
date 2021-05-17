@@ -15,7 +15,7 @@ class KeyRegister(
     @field:NotBlank
     @field:Column(name = "typeKey")
     @field:Enumerated(EnumType.STRING)
-    val typeKey: RegisterKeyRequest.TypeKey,
+    val typeKey: TypeKey,
 
     @field:Column(name = "keyValue")
     val keyValue: String,
@@ -23,7 +23,7 @@ class KeyRegister(
     @field:NotBlank
     @field:Column(name = "typeAccount")
     @field:Enumerated(EnumType.STRING)
-    val typeAccount: RegisterKeyRequest.TypeAccount
+    val typeAccount: TypeAccount
 ) {
     @Id
     @Column(name = "id", updatable = false, nullable = false)
