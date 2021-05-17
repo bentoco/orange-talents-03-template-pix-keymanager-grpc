@@ -23,47 +23,47 @@ import javax.inject.Singleton
  */
 
 @MicronautTest(transactional = false)
-internal class KeyRegisterServerTest(
+internal class RegisterNewKeyServerTest(
     val grpcClient: KeyManagerServiceGrpc.KeyManagerServiceBlockingStub,
-    val repository: KeyRegisterRepository
+    val keyRepository: PixKeyRepository
 ) {
     @Test
     internal fun `register random key`() {
         //scenario
-        repository.deleteAll()
+        keyRepository.deleteAll()
 
         //action
         val result = grpcClient.registerKey(
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(UUID.randomUUID().toString())
-                .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                .setTypeKey(TypeKey.RANDOM_KEY)
+                .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
         )
         //asserts
         with(result) {
-            assertEquals(1, repository.count())
+            assertEquals(1, keyRepository.count())
             assertNotNull(pixId)
         }
     }
 
     @ParameterizedTest(name = "should register cpf, email, phone_number keys")
     @MethodSource("getRequest")
-    internal fun `register cpf email phone_number keys`(keyRegister: KeyRegister) {
-        repository.deleteAll()
+    internal fun `register cpf email phone_number keys`(registerNewKey: RegisterNewKey) {
+        keyRepository.deleteAll()
 
         val result = grpcClient.registerKey(
             RegisterKeyRequest
                 .newBuilder()
-                .setUserId(keyRegister.id)
-                .setTypeKey(keyRegister.typeKey)
-                .setKeyValue(keyRegister.keyValue)
-                .setTypeAccount(keyRegister.typeAccount)
+                .setUserId(registerNewKey.id)
+                .setTypeKey(registerNewKey.typeKey)
+                .setKeyValue(registerNewKey.keyValue)
+                .setTypeAccount(registerNewKey.typeAccount)
                 .build()
         )
         with(result) {
-            assertEquals(1, repository.count())
+            assertEquals(1, keyRepository.count())
             assertNotNull(pixId)
         }
     }
@@ -76,8 +76,8 @@ internal class KeyRegisterServerTest(
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(userId)
-                .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                .setTypeKey(TypeKey.RANDOM_KEY)
+                .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
         )
 
@@ -86,8 +86,8 @@ internal class KeyRegisterServerTest(
                 RegisterKeyRequest
                     .newBuilder()
                     .setUserId(userId)
-                    .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                    .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                    .setTypeKey(TypeKey.RANDOM_KEY)
+                    .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                     .build()
             )
         }
@@ -99,16 +99,16 @@ internal class KeyRegisterServerTest(
 
     @ParameterizedTest(name = "must not register cpf, email, phone_number keys")
     @MethodSource("getRequest")
-    internal fun `must not register cpf email phone_number keys`(keyRegister: KeyRegister) {
-        repository.deleteAll()
+    internal fun `must not register cpf email phone_number keys`(registerNewKey: RegisterNewKey) {
+        keyRepository.deleteAll()
 
         grpcClient.registerKey(
             RegisterKeyRequest
                 .newBuilder()
-                .setUserId(keyRegister.id)
-                .setTypeKey(keyRegister.typeKey)
-                .setKeyValue(keyRegister.keyValue)
-                .setTypeAccount(keyRegister.typeAccount)
+                .setUserId(registerNewKey.id)
+                .setTypeKey(registerNewKey.typeKey)
+                .setKeyValue(registerNewKey.keyValue)
+                .setTypeAccount(registerNewKey.typeAccount)
                 .build()
         )
 
@@ -116,10 +116,10 @@ internal class KeyRegisterServerTest(
             grpcClient.registerKey(
                 RegisterKeyRequest
                     .newBuilder()
-                    .setUserId(keyRegister.id)
-                    .setTypeKey(keyRegister.typeKey)
-                    .setKeyValue(keyRegister.keyValue)
-                    .setTypeAccount(keyRegister.typeAccount)
+                    .setUserId(registerNewKey.id)
+                    .setTypeKey(registerNewKey.typeKey)
+                    .setKeyValue(registerNewKey.keyValue)
+                    .setTypeAccount(registerNewKey.typeAccount)
                     .build()
             )
         }
@@ -132,24 +132,24 @@ internal class KeyRegisterServerTest(
 
     companion object {
         @JvmStatic
-        fun getRequest() = listOf<KeyRegister>(
-            KeyRegister(
+        fun getRequest() = listOf<RegisterNewKey>(
+            RegisterNewKey(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.CPF,
+                TypeKey.CPF,
                 "12312312312",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_CORRENTE
             ),
-            KeyRegister(
+            RegisterNewKey(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.EMAIL,
+                TypeKey.EMAIL,
                 "foo@mail.com",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_CORRENTE
             ),
-            KeyRegister(
+            RegisterNewKey(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.PHONE_NUMBER,
+                TypeKey.PHONE_NUMBER,
                 "+55999999999",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_CORRENTE
             )
         )
 
