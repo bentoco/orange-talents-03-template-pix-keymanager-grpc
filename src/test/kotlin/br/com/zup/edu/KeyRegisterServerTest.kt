@@ -7,19 +7,18 @@ import io.micronaut.context.annotation.Factory
 import io.micronaut.grpc.annotation.GrpcChannel
 import io.micronaut.grpc.server.GrpcServerChannel
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
+import org.junit.jupiter.api.assertThrows
 import java.util.*
 import javax.inject.Singleton
 
 /**
  * 1 - register random key [x]
  * 2 - register cpf, email, phone_number keys [x]
- * 3 - try to register a repeated random key
+ * 3 - try to register a repeated random key [X]
  * 4 - try to register a repeated cpf, email, phone_number key
  */
 
@@ -69,6 +68,68 @@ internal class KeyRegisterServerTest(
         }
     }
 
+    @Test
+    internal fun `must not register random key repeated`() {
+        val userId = UUID.randomUUID().toString()
+
+        grpcClient.registerKey(
+            RegisterKeyRequest
+                .newBuilder()
+                .setUserId(userId)
+                .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
+                .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                .build()
+        )
+
+        val exception = assertThrows<StatusRuntimeException>("should throw an exception") {
+            grpcClient.registerKey(
+                RegisterKeyRequest
+                    .newBuilder()
+                    .setUserId(userId)
+                    .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
+                    .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                    .build()
+            )
+        }
+        with(exception) {
+            assertEquals(Status.ALREADY_EXISTS, status.code.toStatus())
+            assertEquals("key value and type already register", status.description)
+        }
+    }
+
+    @ParameterizedTest(name = "must not register cpf, email, phone_number keys")
+    @MethodSource("getRequest")
+    internal fun `must not register cpf email phone_number keys`(keyRegister: KeyRegister) {
+        repository.deleteAll()
+
+        grpcClient.registerKey(
+            RegisterKeyRequest
+                .newBuilder()
+                .setUserId(keyRegister.id)
+                .setTypeKey(keyRegister.typeKey)
+                .setKeyValue(keyRegister.keyValue)
+                .setTypeAccount(keyRegister.typeAccount)
+                .build()
+        )
+
+        val exception = assertThrows<StatusRuntimeException>() {
+            grpcClient.registerKey(
+                RegisterKeyRequest
+                    .newBuilder()
+                    .setUserId(keyRegister.id)
+                    .setTypeKey(keyRegister.typeKey)
+                    .setKeyValue(keyRegister.keyValue)
+                    .setTypeAccount(keyRegister.typeAccount)
+                    .build()
+            )
+        }
+        with(exception) {
+            assertEquals(Status.ALREADY_EXISTS, status.code.toStatus())
+            assertEquals("key value and type already register", status.description)
+        }
+    }
+
+
     companion object {
         @JvmStatic
         fun getRequest() = listOf<KeyRegister>(
@@ -92,32 +153,6 @@ internal class KeyRegisterServerTest(
             )
         )
 
-    }
-
-    @Test
-    internal fun `must not register repeated random key`() {
-        val randomKey = KeyRegister(
-            UUID.randomUUID().toString(),
-            RegisterKeyRequest.TypeKey.RANDOM_KEY,
-            "",
-            RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
-        )
-        repository.save(randomKey)
-
-        val exception = assertThrows<StatusRuntimeException>(){
-            grpcClient.registerKey(
-                RegisterKeyRequest
-                    .newBuilder()
-                    .setUserId(randomKey.id)
-                    .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                    .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
-                    .build()
-            )
-        }
-        with(exception){
-            assertEquals(Status.ALREADY_EXISTS, status.code.toStatus())
-            assertEquals("key value and type already register",status.description)
-        }
     }
 
     @Factory
