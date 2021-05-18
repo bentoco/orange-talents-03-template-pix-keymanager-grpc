@@ -27,6 +27,7 @@ internal class KeyRegisterServerTest(
     val grpcClient: KeyManagerServiceGrpc.KeyManagerServiceBlockingStub,
     val repository: KeyRegisterRepository
 ) {
+
     @Test
     internal fun `register random key`() {
         //scenario
@@ -37,8 +38,8 @@ internal class KeyRegisterServerTest(
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(UUID.randomUUID().toString())
-                .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                .setTypeKey(TypeKey.RANDOM_KEY)
+                .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
         )
         //asserts
@@ -76,8 +77,8 @@ internal class KeyRegisterServerTest(
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(userId)
-                .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                .setTypeKey(TypeKey.RANDOM_KEY)
+                .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
         )
 
@@ -86,8 +87,8 @@ internal class KeyRegisterServerTest(
                 RegisterKeyRequest
                     .newBuilder()
                     .setUserId(userId)
-                    .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                    .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                    .setTypeKey(TypeKey.RANDOM_KEY)
+                    .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                     .build()
             )
         }
@@ -135,26 +136,71 @@ internal class KeyRegisterServerTest(
         fun getRequest() = listOf<KeyRegister>(
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.CPF,
+                TypeKey.CPF,
                 "12312312312",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+<<<<<<< HEAD
+                TypeAccount.CONTA_CORRENTE,
+                AssociatedAccount("","", "", "","")
+=======
+                TypeAccount.CONTA_CORRENTE
+>>>>>>> 3d701a6758e7bc739740a0eb94ed3025641f68e0
             ),
+
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.EMAIL,
+                TypeKey.EMAIL,
                 "foo@mail.com",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+<<<<<<< HEAD
+                TypeAccount.CONTA_CORRENTE,
+                AssociatedAccount("","", "", "","")
+=======
+                TypeAccount.CONTA_CORRENTE
+>>>>>>> 3d701a6758e7bc739740a0eb94ed3025641f68e0
             ),
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.PHONE_NUMBER,
+                TypeKey.PHONE_NUMBER,
                 "+55999999999",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+<<<<<<< HEAD
+                TypeAccount.CONTA_POUPANCA,
+                AssociatedAccount("","", "", "","")
+=======
+                TypeAccount.CONTA_CORRENTE
+>>>>>>> 3d701a6758e7bc739740a0eb94ed3025641f68e0
             )
         )
 
     }
 
+<<<<<<< HEAD
+=======
+    @Test
+    internal fun `must not register repeated random key`() {
+        val randomKey = KeyRegister(
+            UUID.randomUUID().toString(),
+            TypeKey.RANDOM_KEY,
+            "",
+            TypeAccount.CONTA_CORRENTE
+        )
+        repository.save(randomKey)
+
+        val exception = assertThrows<StatusRuntimeException>(){
+            grpcClient.registerKey(
+                RegisterKeyRequest
+                    .newBuilder()
+                    .setUserId(randomKey.id)
+                    .setTypeKey(TypeKey.RANDOM_KEY)
+                    .setTypeAccount(TypeAccount.CONTA_CORRENTE)
+                    .build()
+            )
+        }
+        with(exception){
+            assertEquals(Status.ALREADY_EXISTS, status.code.toStatus())
+            assertEquals("key value and type already register",status.description)
+        }
+    }
+
+>>>>>>> 3d701a6758e7bc739740a0eb94ed3025641f68e0
     @Factory
     class Clients {
         @Singleton
