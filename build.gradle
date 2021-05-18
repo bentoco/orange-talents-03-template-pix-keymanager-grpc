@@ -11,6 +11,10 @@ plugins {
 version = "0.1"
 group = "br.com.zup.edu"
 
+allOpen{
+    annotation("package br.com.zup.edu.AllOpen")
+}
+
 repositories {
     mavenCentral()
 }

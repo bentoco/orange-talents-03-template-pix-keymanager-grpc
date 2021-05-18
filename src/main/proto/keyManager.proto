@@ -11,25 +11,29 @@ service KeyManagerService {
   rpc registerKey (RegisterKeyRequest) returns (RegisterKeyResponse) {}
 }
 
+enum TypeKey{
+  UNKNOWN_TYPE_KEY = 0;
+  RANDOM_KEY = 1;
+  CPF = 2;
+  PHONE_NUMBER = 3;
+  EMAIL = 4;
+}
+
+enum TypeAccount{
+  UNKNOWN_TYPE_ACCOUNT = 0;
+  CONTA_CORRENTE = 1;
+  CONTA_POUPANCA = 2;
+}
+
 message RegisterKeyRequest {
   string user_id = 1;
-  enum TypeKey{
-    UNKNOWN = 0;
-    RANDOM_KEY = 1;
-    CPF = 2;
-    PHONE_NUMBER = 3;
-    EMAIL = 4;
-  }
   TypeKey type_key = 2;
   string key_value = 3;
-  enum TypeAccount{
-    CONTA_CORRENTE = 0;
-    CONTA_POUPANCA = 1;
-  }
   TypeAccount type_account = 4;
 }
 
 message RegisterKeyResponse {
   string pix_id = 1;
+  string user_id = 2;
 }
 

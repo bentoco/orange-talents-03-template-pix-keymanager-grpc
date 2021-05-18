@@ -27,6 +27,7 @@ internal class KeyRegisterServerTest(
     val grpcClient: KeyManagerServiceGrpc.KeyManagerServiceBlockingStub,
     val repository: KeyRegisterRepository
 ) {
+
     @Test
     internal fun `register random key`() {
         //scenario
@@ -37,8 +38,8 @@ internal class KeyRegisterServerTest(
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(UUID.randomUUID().toString())
-                .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                .setTypeKey(TypeKey.RANDOM_KEY)
+                .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
         )
         //asserts
@@ -76,8 +77,8 @@ internal class KeyRegisterServerTest(
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(userId)
-                .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                .setTypeKey(TypeKey.RANDOM_KEY)
+                .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
         )
 
@@ -86,8 +87,8 @@ internal class KeyRegisterServerTest(
                 RegisterKeyRequest
                     .newBuilder()
                     .setUserId(userId)
-                    .setTypeKey(RegisterKeyRequest.TypeKey.RANDOM_KEY)
-                    .setTypeAccount(RegisterKeyRequest.TypeAccount.CONTA_CORRENTE)
+                    .setTypeKey(TypeKey.RANDOM_KEY)
+                    .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                     .build()
             )
         }
@@ -135,21 +136,25 @@ internal class KeyRegisterServerTest(
         fun getRequest() = listOf<KeyRegister>(
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.CPF,
+                TypeKey.CPF,
                 "12312312312",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_CORRENTE,
+                AssociatedAccount("","", "", "","")
             ),
+
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.EMAIL,
+                TypeKey.EMAIL,
                 "foo@mail.com",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_CORRENTE,
+                AssociatedAccount("","", "", "","")
             ),
             KeyRegister(
                 UUID.randomUUID().toString(),
-                RegisterKeyRequest.TypeKey.PHONE_NUMBER,
+                TypeKey.PHONE_NUMBER,
                 "+55999999999",
-                RegisterKeyRequest.TypeAccount.CONTA_CORRENTE
+                TypeAccount.CONTA_POUPANCA,
+                AssociatedAccount("","", "", "","")
             )
         )
 

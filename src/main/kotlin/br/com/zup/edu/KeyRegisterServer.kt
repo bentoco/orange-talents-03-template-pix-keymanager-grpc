@@ -1,11 +1,12 @@
 package br.com.zup.edu
 
+import br.com.zup.edu.client.FetchClient
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
+import io.micronaut.http.client.exceptions.HttpClientResponseException
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
-import javax.validation.ConstraintViolationException
 
 /**
  * Premises to generate key
@@ -15,21 +16,24 @@ import javax.validation.ConstraintViolationException
  *
  * To-do
  *
- * 1 - if random keytype check already exists and generate
- * 2 - if not null and keytype != random, valid already exists and generate
- * 3 - if null and keytype != random return error
- * 4 - persist key
+ * 1 - check UNKNOWN TYPES and nullables values
+ * 2 - check if already exists key generated
+ * 3 - fetch account at external itau service
+ * 4 - valid the key value
  */
 
 @Singleton
 class KeyRegisterServer(
-    @Inject val repository: KeyRegisterRepository,  //2
-    @Inject val keyValueValidator: KeyValueValidator
+    @Inject val repository: KeyRegisterRepository,
+    @Inject val keyValueValidator: KeyValueValidator,
+    @Inject val itauClient: FetchClient
 ) : KeyManagerServiceGrpc.KeyManagerServiceImplBase() {
 
     override fun registerKey(request: RegisterKeyRequest?, responseObserver: StreamObserver<RegisterKeyResponse>?) {
-        //1
-        if (request?.keyValue == null && request?.typeKey == RegisterKeyRequest.TypeKey.UNKNOWN) {
+        /**
+         * Treatment for unknown types
+         */
+        if (request!!.typeKey == TypeKey.UNKNOWN_TYPE_KEY || request.typeAccount == TypeAccount.UNKNOWN_TYPE_ACCOUNT) {
             responseObserver?.onError(
                 Status.INVALID_ARGUMENT
                     .withDescription("invalid input data")
@@ -38,19 +42,25 @@ class KeyRegisterServer(
             return
         }
 
-        val validatorResult: Boolean = keyValueValidator.validator(request!!.keyValue)
-        //1
-        if (!validatorResult && !request!!.typeKey.equals(RegisterKeyRequest.TypeKey.RANDOM_KEY)) {
-            responseObserver?.onError(
-                Status.INVALID_ARGUMENT
-                    .withDescription("invalid input key value")
-                    .asRuntimeException()
-            )
-            return
-        }
+        /**
+         * Consult the Itaú external service to get the customer data
+         */
+        val response = try {
+            itauClient.fetchAccountsByType(request.userId, request.typeAccount.name)
+        } catch (e: HttpClientResponseException) {
+            println("Status: ${e.status}")
+            println("Message: ${e.message}")
+            null
+        } ?: throw IllegalStateException("account not found")
 
-        val existsKey = repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
-        //1
+        /**
+         * Check in the repository if there is already a generated key,
+         * for random keys we make a specific query
+         */
+        val existsKey = when (request.typeKey) {
+            TypeKey.RANDOM_KEY -> repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
+            else -> repository.existsByKeyValue(request.keyValue)
+        }
         if (existsKey) {
             responseObserver?.onError(
                 Status.ALREADY_EXISTS
@@ -60,11 +70,25 @@ class KeyRegisterServer(
             return
         }
 
-        //1
+        /**
+         * Values are passed to be validated by the class that validates
+         */
+        val validatorResult: Boolean = keyValueValidator.validator(request.keyValue)
+        if (!validatorResult && !request.typeKey.equals(TypeKey.RANDOM_KEY)) {
+            responseObserver?.onError(
+                Status.INVALID_ARGUMENT
+                    .withDescription("invalid input key value")
+                    .asRuntimeException()
+            )
+            return
+        }
+
+        val account: AssociatedAccount = response.toModel()
         when (request.typeKey) {
-            RegisterKeyRequest.TypeKey.RANDOM_KEY -> {
+            TypeKey.RANDOM_KEY -> {
                 val randomKey = randomKeyGanerator(request)
-                persistKey(randomKey, repository, responseObserver)
+                val toPersist = randomKey.toModel(account)
+                repository.save(toPersist)
                 responseObserver?.onNext(
                     RegisterKeyResponse
                         .newBuilder()
@@ -76,11 +100,13 @@ class KeyRegisterServer(
             }
             else -> {
                 val key = keyGenerator(request)
-                persistKey(key, repository, responseObserver)
+                val toPersist = key.toModel(account)
+                repository.save(toPersist)
                 responseObserver?.onNext(
                     RegisterKeyResponse
                         .newBuilder()
                         .setPixId(request.keyValue)
+                        .setUserId(request.userId)
                         .build()
                 )
                 responseObserver?.onCompleted()
@@ -90,8 +116,8 @@ class KeyRegisterServer(
     }
 }
 
-private fun randomKeyGanerator(request: RegisterKeyRequest): KeyRegister {
-    return KeyRegister(
+private fun randomKeyGanerator(request: RegisterKeyRequest): KeyRegisterRequest {
+    return KeyRegisterRequest(
         userId = request.userId,
         typeKey = request.typeKey,
         keyValue = UUID.randomUUID().toString(),
@@ -99,29 +125,12 @@ private fun randomKeyGanerator(request: RegisterKeyRequest): KeyRegister {
     )
 }
 
-private fun keyGenerator(request: RegisterKeyRequest): KeyRegister {
-    return KeyRegister(
+private fun keyGenerator(request: RegisterKeyRequest): KeyRegisterRequest {
+    return KeyRegisterRequest(
         userId = request.userId,
         typeKey = request.typeKey,
         keyValue = request.keyValue,
         typeAccount = request.typeAccount
     )
-}
-
-private fun persistKey(
-    keyRegister: KeyRegister,
-    repository: KeyRegisterRepository,
-    responseObserver: StreamObserver<RegisterKeyResponse>?
-) {
-    try {
-        repository.save(keyRegister)
-    } catch (e: ConstraintViolationException) {
-        responseObserver?.onError(
-            Status.INVALID_ARGUMENT
-                .withDescription("invalid input data")
-                .asRuntimeException()
-        )
-        return
-    }
 }
 
