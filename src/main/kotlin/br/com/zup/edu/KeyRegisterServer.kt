@@ -24,6 +24,7 @@ import javax.inject.Singleton
 
 @Singleton
 class KeyRegisterServer(
+
     @Inject val repository: KeyRegisterRepository,
     @Inject val keyValueValidator: KeyValueValidator,
     @Inject val itauClient: FetchClient
@@ -41,7 +42,6 @@ class KeyRegisterServer(
             )
             return
         }
-
         /**
          * Consult the Itaú external service to get the customer data
          */
@@ -61,15 +61,6 @@ class KeyRegisterServer(
             TypeKey.RANDOM_KEY -> repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
             else -> repository.existsByKeyValue(request.keyValue)
         }
-        if (existsKey) {
-            responseObserver?.onError(
-                Status.ALREADY_EXISTS
-                    .withDescription("key value and type already register")
-                    .asRuntimeException()
-            )
-            return
-        }
-
         /**
          * Values are passed to be validated by the class that validates
          */
@@ -133,4 +124,3 @@ private fun keyGenerator(request: RegisterKeyRequest): KeyRegisterRequest {
         typeAccount = request.typeAccount
     )
 }
-
