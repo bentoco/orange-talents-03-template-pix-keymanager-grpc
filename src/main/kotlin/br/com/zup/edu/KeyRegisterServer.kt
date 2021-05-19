@@ -35,11 +35,46 @@ class KeyRegisterServer(
 
     private val LOGGER = LoggerFactory.getLogger(this.javaClass)
 
-    override fun registerKey(request: RegisterKeyRequest?, responseObserver: StreamObserver<RegisterKeyResponse>?) {
+    override fun registerKey(request: RegisterKeyRequest, responseObserver: StreamObserver<RegisterKeyResponse>?) {
 
         LOGGER.info("New request: $request")
 
-        if (request!!.typeKey == TypeKey.UNKNOWN_TYPE_KEY || request.typeAccount == TypeAccount.UNKNOWN_TYPE_ACCOUNT)
+        if (keyRegisterValid(request)) {
+            val account = submitForConsult(request)
+            when (request.typeKey) {
+                TypeKey.RANDOM_KEY -> {
+                    val randomKey = randomKeyGanerator(request)
+                    val toPersist = randomKey.toModel(account)
+                    repository.save(toPersist)
+                    responseObserver?.onNext(
+                        RegisterKeyResponse
+                            .newBuilder()
+                            .setPixId(randomKey.keyValue)
+                            .build()
+                    )
+                    responseObserver?.onCompleted()
+                    return
+                }
+                else -> {
+                    val key = keyGenerator(request)
+                    val toPersist = key.toModel(account)
+                    repository.save(toPersist)
+                    responseObserver?.onNext(
+                        RegisterKeyResponse
+                            .newBuilder()
+                            .setPixId(request.keyValue)
+                            .setUserId(request.userId)
+                            .build()
+                    )
+                    responseObserver?.onCompleted()
+                    return
+                }
+            }
+        }
+    }
+
+    private fun keyRegisterValid(request: RegisterKeyRequest): Boolean {
+        if (request.typeKey == TypeKey.UNKNOWN_TYPE_KEY || request.typeAccount == TypeAccount.UNKNOWN_TYPE_ACCOUNT)
             throw IllegalArgumentException("invalid input data")
 
         if (request.typeKey == TypeKey.RANDOM_KEY && !request.keyValue.isNullOrEmpty())
@@ -55,36 +90,7 @@ class KeyRegisterServer(
         if (!validatorResult && !request.typeKey.equals(TypeKey.RANDOM_KEY))
             throw IllegalArgumentException("invalid input key value")
 
-        val account = submitForConsult(request)
-        when (request.typeKey) {
-            TypeKey.RANDOM_KEY -> {
-                val randomKey = randomKeyGanerator(request)
-                val toPersist = randomKey.toModel(account)
-                repository.save(toPersist)
-                responseObserver?.onNext(
-                    RegisterKeyResponse
-                        .newBuilder()
-                        .setPixId(randomKey.keyValue)
-                        .build()
-                )
-                responseObserver?.onCompleted()
-                return
-            }
-            else -> {
-                val key = keyGenerator(request)
-                val toPersist = key.toModel(account)
-                repository.save(toPersist)
-                responseObserver?.onNext(
-                    RegisterKeyResponse
-                        .newBuilder()
-                        .setPixId(request.keyValue)
-                        .setUserId(request.userId)
-                        .build()
-                )
-                responseObserver?.onCompleted()
-                return
-            }
-        }
+        return true
     }
 
     private fun submitForConsult(request: RegisterKeyRequest): AssociatedAccount {
