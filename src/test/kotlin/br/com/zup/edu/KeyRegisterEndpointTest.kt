@@ -4,6 +4,7 @@ import br.com.zup.edu.client.ClientDetails
 import br.com.zup.edu.client.ClientHolder
 import br.com.zup.edu.client.ClienteInstitution
 import br.com.zup.edu.client.FetchClient
+import br.com.zup.edu.register.AssociatedAccount
 import io.grpc.ManagedChannel
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.provider.EmptySource
 import org.junit.jupiter.params.provider.ValueSource
@@ -27,13 +27,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @MicronautTest(transactional = false, rollback = false)
-internal class KeyRegisterServerTest {
+internal class KeyEndpoint {
 
     @Inject
     lateinit var client: KeyManagerServiceGrpc.KeyManagerServiceBlockingStub
 
     @Inject
-    lateinit var repository: KeyRegisterRepository
+    lateinit var repository: KeyRepository
 
     @Inject
     lateinit var mockFetchClient: FetchClient
@@ -70,7 +70,7 @@ internal class KeyRegisterServerTest {
             "NUMBER"
         )
 
-        val validKeyRegister = KeyRegister(
+        val validKeyRegister = Key(
             CUSTOMER_ID,
             TypeKey.EMAIL,
             CUSTOMER_KEY_VALUE,
@@ -93,7 +93,7 @@ internal class KeyRegisterServerTest {
             "NUMBER"
         )
 
-        val validKeyRegister = KeyRegister(
+        val validKeyRegister = Key(
             CUSTOMER_ID,
             TypeKey.EMAIL,
             CUSTOMER_KEY_VALUE,
@@ -173,12 +173,6 @@ internal class KeyRegisterServerTest {
             assertEquals(1, repository.count())
             assertNotNull(pixId)
             assertEquals(CUSTOMER_ID, repository.findAll()[0].userId)
-        }
-    }
-
-    companion object {
-        fun getRequest() = {
-
         }
     }
 

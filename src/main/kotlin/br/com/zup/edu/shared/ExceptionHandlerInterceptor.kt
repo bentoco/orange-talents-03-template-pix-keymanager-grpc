@@ -1,8 +1,8 @@
 package br.com.zup.edu.shared
 
-import br.com.zup.edu.KeyRegisterServer
 import com.google.rpc.BadRequest
 import com.google.rpc.Code
+import io.grpc.BindableService
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import io.grpc.protobuf.StatusProto
@@ -16,11 +16,11 @@ import javax.validation.ConstraintViolationException
 
 @Singleton
 @InterceptorBean(ErrorHandler::class)
-internal class ExceptionHandlerInterceptor : MethodInterceptor<KeyRegisterServer, Any?> {
+internal class ExceptionHandlerInterceptor : MethodInterceptor<BindableService, Any?> {
 
     private val LOGGER = LoggerFactory.getLogger(this.javaClass)
 
-    override fun intercept(context: MethodInvocationContext<KeyRegisterServer, Any?>): Any? {
+    override fun intercept(context: MethodInvocationContext<BindableService, Any?>): Any? {
         return try {
             context.proceed()
         } catch (e: Exception) {
@@ -30,6 +30,7 @@ internal class ExceptionHandlerInterceptor : MethodInterceptor<KeyRegisterServer
                 is IllegalArgumentException -> Status.INVALID_ARGUMENT.withDescription(e.message).asRuntimeException()
                 is IllegalStateException -> Status.FAILED_PRECONDITION.withDescription(e.message).asRuntimeException()
                 is ConstraintViolationException -> handleConstraintValidationException(e)
+                is NotFoundClientException -> Status.NOT_FOUND.withDescription(e.message).asRuntimeException()
                 is RegisterAlreadyExistsException -> Status.ALREADY_EXISTS.withDescription(e.message)
                     .asRuntimeException()
                 else -> Status.UNKNOWN.withDescription("unexpected error happened").asRuntimeException()
