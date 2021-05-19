@@ -1,12 +1,14 @@
 package br.com.zup.edu
 
 import br.com.zup.edu.client.FetchClient
+import br.com.zup.edu.shared.ErrorHandler
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
+import javax.transaction.Transactional
 
 /**
  * Premises to generate key
@@ -21,7 +23,8 @@ import javax.inject.Singleton
  * 3 - fetch account at external itau service
  * 4 - valid the key value
  */
-
+@AllOpen
+@ErrorHandler
 @Singleton
 class KeyRegisterServer(
 
@@ -42,6 +45,19 @@ class KeyRegisterServer(
             )
             return
         }
+
+        /**
+         * Treatment for random keys
+         */
+        if(request.typeKey == TypeKey.RANDOM_KEY && !request.keyValue.isNullOrEmpty()){
+            responseObserver?.onError(
+                Status.INVALID_ARGUMENT
+                    .withDescription("value key must be null for random key type")
+                    .asRuntimeException()
+            )
+            return
+        }
+
         /**
          * Consult the Itaú external service to get the customer data
          */
@@ -61,6 +77,15 @@ class KeyRegisterServer(
             TypeKey.RANDOM_KEY -> repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
             else -> repository.existsByKeyValue(request.keyValue)
         }
+        if (existsKey) {
+            responseObserver?.onError(
+                Status.ALREADY_EXISTS
+                    .withDescription("key value and type already register")
+                    .asRuntimeException()
+            )
+            return
+        }
+
         /**
          * Values are passed to be validated by the class that validates
          */
