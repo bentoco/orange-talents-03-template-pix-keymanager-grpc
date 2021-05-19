@@ -1,12 +1,15 @@
 package br.com.zup.edu
 
 import br.com.zup.edu.client.FetchClient
-import io.grpc.Status
+import br.com.zup.edu.shared.ErrorHandler
+import br.com.zup.edu.shared.RegisterAlreadyExistsException
 import io.grpc.stub.StreamObserver
 import io.micronaut.http.client.exceptions.HttpClientResponseException
+import org.slf4j.LoggerFactory
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.IllegalArgumentException
 
 /**
  * Premises to generate key
@@ -21,60 +24,38 @@ import javax.inject.Singleton
  * 3 - fetch account at external itau service
  * 4 - valid the key value
  */
-
+@AllOpen
+@ErrorHandler
 @Singleton
 class KeyRegisterServer(
-
     @Inject val repository: KeyRegisterRepository,
     @Inject val keyValueValidator: KeyValueValidator,
     @Inject val itauClient: FetchClient
 ) : KeyManagerServiceGrpc.KeyManagerServiceImplBase() {
 
-    override fun registerKey(request: RegisterKeyRequest?, responseObserver: StreamObserver<RegisterKeyResponse>?) {
-        /**
-         * Treatment for unknown types
-         */
-        if (request!!.typeKey == TypeKey.UNKNOWN_TYPE_KEY || request.typeAccount == TypeAccount.UNKNOWN_TYPE_ACCOUNT) {
-            responseObserver?.onError(
-                Status.INVALID_ARGUMENT
-                    .withDescription("invalid input data")
-                    .asRuntimeException()
-            )
-            return
-        }
-        /**
-         * Consult the Itaú external service to get the customer data
-         */
-        val response = try {
-            itauClient.fetchAccountsByType(request.userId, request.typeAccount.name)
-        } catch (e: HttpClientResponseException) {
-            println("Status: ${e.status}")
-            println("Message: ${e.message}")
-            null
-        } ?: throw IllegalStateException("account not found")
+    private val LOGGER = LoggerFactory.getLogger(this.javaClass)
 
-        /**
-         * Check in the repository if there is already a generated key,
-         * for random keys we make a specific query
-         */
+    override fun registerKey(request: RegisterKeyRequest?, responseObserver: StreamObserver<RegisterKeyResponse>?) {
+
+        LOGGER.info("New request: $request")
+
+        if (request!!.typeKey == TypeKey.UNKNOWN_TYPE_KEY || request.typeAccount == TypeAccount.UNKNOWN_TYPE_ACCOUNT)
+            throw IllegalArgumentException("invalid input data")
+
+        if (request.typeKey == TypeKey.RANDOM_KEY && !request.keyValue.isNullOrEmpty())
+            throw IllegalArgumentException("value key must be null for random key type")
+
         val existsKey = when (request.typeKey) {
             TypeKey.RANDOM_KEY -> repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
             else -> repository.existsByKeyValue(request.keyValue)
         }
-        /**
-         * Values are passed to be validated by the class that validates
-         */
-        val validatorResult: Boolean = keyValueValidator.validator(request.keyValue)
-        if (!validatorResult && !request.typeKey.equals(TypeKey.RANDOM_KEY)) {
-            responseObserver?.onError(
-                Status.INVALID_ARGUMENT
-                    .withDescription("invalid input key value")
-                    .asRuntimeException()
-            )
-            return
-        }
+        if (existsKey) throw RegisterAlreadyExistsException("key value and type already register")
 
-        val account: AssociatedAccount = response.toModel()
+        val validatorResult: Boolean = keyValueValidator.validator(request.keyValue)
+        if (!validatorResult && !request.typeKey.equals(TypeKey.RANDOM_KEY))
+            throw IllegalArgumentException("invalid input key value")
+
+        val account = submitForConsult(request)
         when (request.typeKey) {
             TypeKey.RANDOM_KEY -> {
                 val randomKey = randomKeyGanerator(request)
@@ -105,7 +86,24 @@ class KeyRegisterServer(
             }
         }
     }
+
+    private fun submitForConsult(request: RegisterKeyRequest): AssociatedAccount {
+        val response = try {
+            itauClient
+                .fetchAccountsByType(request.userId, request.typeAccount.name)
+        } catch (e: HttpClientResponseException) {
+            println("Status: ${e.status}")
+            println("Message: ${e.message}")
+            null
+        } ?: throw IllegalStateException("account not found")
+
+        return response.toModel()
+    }
 }
+
+/**
+ * Extension methods
+ */
 
 private fun randomKeyGanerator(request: RegisterKeyRequest): KeyRegisterRequest {
     return KeyRegisterRequest(
