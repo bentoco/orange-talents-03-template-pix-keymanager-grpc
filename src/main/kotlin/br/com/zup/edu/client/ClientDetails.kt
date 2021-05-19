@@ -1,9 +1,8 @@
 package br.com.zup.edu.client
 
-import br.com.zup.edu.AssociatedAccount
+import br.com.zup.edu.register.AssociatedAccount
 import br.com.zup.edu.AllOpen
 import br.com.zup.edu.TypeAccount
-import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @AllOpen

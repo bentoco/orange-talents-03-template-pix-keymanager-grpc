@@ -1,5 +1,6 @@
 package br.com.zup.edu
 
+import br.com.zup.edu.register.AssociatedAccount
 import org.hibernate.annotations.CreationTimestamp
 import java.time.LocalDateTime
 import java.util.*
@@ -7,7 +8,7 @@ import javax.persistence.*
 
 @Entity
 @Table(name = "keys")
-class KeyRegister(
+class Key(
 
     @field:Column(name = "userId", nullable = false)
     val userId: String,

@@ -1,5 +1,6 @@
-package br.com.zup.edu
+package br.com.zup.edu.register
 
+import br.com.zup.edu.*
 import br.com.zup.edu.client.FetchClient
 import br.com.zup.edu.shared.ErrorHandler
 import br.com.zup.edu.shared.RegisterAlreadyExistsException
@@ -28,7 +29,7 @@ import kotlin.IllegalArgumentException
 @ErrorHandler
 @Singleton
 class KeyRegisterServer(
-    @Inject val repository: KeyRegisterRepository,
+    @Inject val repository: KeyRepository,
     @Inject val keyValueValidator: KeyValueValidator,
     @Inject val itauClient: FetchClient
 ) : KeyManagerServiceGrpc.KeyManagerServiceImplBase() {
@@ -47,8 +48,7 @@ class KeyRegisterServer(
                     val toPersist = randomKey.toModel(account)
                     repository.save(toPersist)
                     responseObserver?.onNext(
-                        RegisterKeyResponse
-                            .newBuilder()
+                        RegisterKeyResponse.newBuilder()
                             .setPixId(randomKey.keyValue)
                             .build()
                     )
@@ -60,8 +60,7 @@ class KeyRegisterServer(
                     val toPersist = key.toModel(account)
                     repository.save(toPersist)
                     responseObserver?.onNext(
-                        RegisterKeyResponse
-                            .newBuilder()
+                        RegisterKeyResponse.newBuilder()
                             .setPixId(request.keyValue)
                             .setUserId(request.userId)
                             .build()

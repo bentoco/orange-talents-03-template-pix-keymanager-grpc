@@ -1,4 +1,4 @@
-package br.com.zup.edu
+package br.com.zup.edu.register
 
 import javax.persistence.Embeddable
 

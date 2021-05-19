@@ -13,4 +13,9 @@ interface FetchClient {
         @PathVariable userId: String,
         @QueryValue tipo: String
     ) : ClientDetails?
+
+    @Get("/api/v1/clientes/{userId}")
+    fun fetchAccount(@PathVariable userId: String): Account?
 }
+
+data class Account(val id: String, val nome: String, val cpf: String, val instituicao: ClienteInstitution)
