@@ -30,7 +30,7 @@ internal class ExceptionHandlerInterceptor : MethodInterceptor<KeyRegisterServer
                 is IllegalArgumentException -> Status.INVALID_ARGUMENT.withDescription(e.message).asRuntimeException()
                 is IllegalStateException -> Status.FAILED_PRECONDITION.withDescription(e.message).asRuntimeException()
                 is ConstraintViolationException -> handleConstraintValidationException(e)
-                is ProposalAlreadyExistsException -> Status.ALREADY_EXISTS.withDescription(e.message)
+                is RegisterAlreadyExistsException -> Status.ALREADY_EXISTS.withDescription(e.message)
                     .asRuntimeException()
                 else -> Status.UNKNOWN.withDescription("unexpected error happened").asRuntimeException()
             }
