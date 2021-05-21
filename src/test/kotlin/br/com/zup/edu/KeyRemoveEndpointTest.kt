@@ -1,8 +1,8 @@
 package br.com.zup.edu
 
-import br.com.zup.edu.client.Account
-import br.com.zup.edu.client.ClienteInstitution
-import br.com.zup.edu.client.FetchClient
+import br.com.zup.edu.itau.Account
+import br.com.zup.edu.itau.ClienteInstitution
+import br.com.zup.edu.itau.FetchClient
 import br.com.zup.edu.register.AssociatedAccount
 import io.grpc.ManagedChannel
 import io.grpc.Status
@@ -75,7 +75,8 @@ internal class KeyRemoveEndpointTest {
                 "FOO",
                 "CPF",
                 "AGENCY",
-                "NUMBER"
+                "NUMBER",
+                "ISPB"
             )
         )
         repository.save(keyRegister)

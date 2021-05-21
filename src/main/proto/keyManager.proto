@@ -18,9 +18,9 @@ service KeyRemoveService {
 
 enum TypeKey {
     UNKNOWN_TYPE_KEY = 0;
-    RANDOM_KEY = 1;
+    RANDOM = 1;
     CPF = 2;
-    PHONE_NUMBER = 3;
+    PHONE = 3;
     EMAIL = 4;
 }
 
