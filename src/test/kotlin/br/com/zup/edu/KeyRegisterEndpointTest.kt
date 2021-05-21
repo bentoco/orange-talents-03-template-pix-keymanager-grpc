@@ -1,9 +1,9 @@
 package br.com.zup.edu
 
-import br.com.zup.edu.client.ClientDetails
-import br.com.zup.edu.client.ClientHolder
-import br.com.zup.edu.client.ClienteInstitution
-import br.com.zup.edu.client.FetchClient
+import br.com.zup.edu.itau.ClientDetails
+import br.com.zup.edu.itau.ClientHolder
+import br.com.zup.edu.itau.ClienteInstitution
+import br.com.zup.edu.itau.FetchClient
 import br.com.zup.edu.register.AssociatedAccount
 import io.grpc.ManagedChannel
 import io.grpc.Status
@@ -17,8 +17,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EmptySource
 import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.Mockito
@@ -42,10 +42,10 @@ internal class KeyEndpoint {
     private val CUSTOMER_TYPE_ACCOUNT = TypeAccount.CONTA_CORRENTE
     private val CUSTOMER_KEY_VALUE = "foo@mail.com"
 
-    private val institution = ClienteInstitution("name", "ispb")
-    private val holder = ClientHolder("ID", "NOME", CUSTOMER_ID)
+    private val institution = ClienteInstitution("ITAU", "60701190")
+    private val holder = ClientHolder("5260263c-a3c1-4727-ae32-3bdb2538841b", "Foo Bar", CUSTOMER_ID)
     private val details = ClientDetails(
-        CUSTOMER_TYPE_ACCOUNT, institution, "AGENCY", "NUMBER", holder
+        CUSTOMER_TYPE_ACCOUNT, institution, "0001", "291900", holder
     )
 
     @BeforeEach
@@ -63,11 +63,12 @@ internal class KeyEndpoint {
     @Test
     internal fun `find key register by key value`() {
         val account = AssociatedAccount(
-            "INSTITUTION",
-            "FOO",
-            "CPF",
-            "AGENCY",
-            "NUMBER"
+            "ITAU",
+            "Foo Bar",
+            "02467781054",
+            "0001",
+            "291900",
+            "60701190"
         )
 
         val validKeyRegister = Key(
@@ -90,7 +91,8 @@ internal class KeyEndpoint {
             "FOO",
             "CPF",
             "AGENCY",
-            "NUMBER"
+            "NUMBER",
+            "ISPB"
         )
 
         val validKeyRegister = Key(
@@ -112,7 +114,7 @@ internal class KeyEndpoint {
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(CUSTOMER_ID)
-                .setTypeKey(TypeKey.RANDOM_KEY)
+                .setTypeKey(TypeKey.RANDOM)
                 .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
         )
@@ -164,7 +166,7 @@ internal class KeyEndpoint {
             RegisterKeyRequest
                 .newBuilder()
                 .setUserId(CUSTOMER_ID)
-                .setTypeKey(TypeKey.PHONE_NUMBER)
+                .setTypeKey(TypeKey.PHONE)
                 .setKeyValue("+5511941661148")
                 .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                 .build()
@@ -181,7 +183,7 @@ internal class KeyEndpoint {
     @ValueSource(strings = ["0", "234", "666.666.666-66", "666666666-66"])
     internal fun `must not register invalid cpf`(cpf: String) {
 
-        val exception = assertThrows<StatusRuntimeException>() {
+        val exception = assertThrows<StatusRuntimeException> {
             client.registerKey(
                 RegisterKeyRequest
                     .newBuilder()
@@ -203,7 +205,7 @@ internal class KeyEndpoint {
     @ValueSource(strings = ["foo", "foomailcom", "12345_12412", "@"])
     internal fun `must not register invalid email`(email: String) {
 
-        val exception = assertThrows<StatusRuntimeException>() {
+        val exception = assertThrows<StatusRuntimeException> {
             client.registerKey(
                 RegisterKeyRequest
                     .newBuilder()
@@ -225,12 +227,12 @@ internal class KeyEndpoint {
     @ValueSource(strings = ["1", "234", "111111", "+55119416611119991"])
     internal fun `must not register invalid phone_number`(phone: String) {
 
-        val exception = assertThrows<StatusRuntimeException>() {
+        val exception = assertThrows<StatusRuntimeException> {
             client.registerKey(
                 RegisterKeyRequest
                     .newBuilder()
                     .setUserId(CUSTOMER_ID)
-                    .setTypeKey(TypeKey.PHONE_NUMBER)
+                    .setTypeKey(TypeKey.PHONE)
                     .setKeyValue(phone)
                     .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                     .build()
@@ -244,12 +246,12 @@ internal class KeyEndpoint {
 
     @Test
     internal fun `must not register random key without null key value`() {
-        val exception = assertThrows<StatusRuntimeException>() {
+        val exception = assertThrows<StatusRuntimeException> {
             client.registerKey(
                 RegisterKeyRequest
                     .newBuilder()
                     .setUserId(CUSTOMER_ID)
-                    .setTypeKey(TypeKey.RANDOM_KEY)
+                    .setTypeKey(TypeKey.RANDOM)
                     .setKeyValue("ANYTHING")
                     .setTypeAccount(TypeAccount.CONTA_CORRENTE)
                     .build()

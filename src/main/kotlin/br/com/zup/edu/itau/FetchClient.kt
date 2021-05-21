@@ -1,4 +1,4 @@
-package br.com.zup.edu.client
+package br.com.zup.edu.itau
 
 import io.micronaut.http.annotation.Get
 import io.micronaut.http.annotation.PathVariable

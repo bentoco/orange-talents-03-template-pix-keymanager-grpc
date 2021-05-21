@@ -21,10 +21,11 @@ internal class ExceptionHandlerInterceptor : MethodInterceptor<BindableService, 
     private val LOGGER = LoggerFactory.getLogger(this.javaClass)
 
     override fun intercept(context: MethodInvocationContext<BindableService, Any?>): Any? {
-        return try {
+        try {
             context.proceed()
         } catch (e: Exception) {
             LOGGER.error(e.message)
+            e.printStackTrace()
 
             val statusError = when (e) {
                 is IllegalArgumentException -> Status.INVALID_ARGUMENT.withDescription(e.message).asRuntimeException()
@@ -38,8 +39,8 @@ internal class ExceptionHandlerInterceptor : MethodInterceptor<BindableService, 
 
             val responseObserver = context.parameterValues[1] as StreamObserver<*>
             responseObserver.onError(statusError)
-            null
         }
+        return null
     }
 
     private fun handleConstraintValidationException(e: ConstraintViolationException): StatusRuntimeException {

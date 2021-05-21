@@ -1,16 +1,13 @@
 package br.com.zup.edu.register
 
 import br.com.zup.edu.*
-import br.com.zup.edu.client.FetchClient
+import br.com.zup.edu.bcb.*
 import br.com.zup.edu.shared.ErrorHandler
-import br.com.zup.edu.shared.RegisterAlreadyExistsException
 import io.grpc.stub.StreamObserver
-import io.micronaut.http.client.exceptions.HttpClientResponseException
+import io.micronaut.validation.Validated
 import org.slf4j.LoggerFactory
-import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.IllegalArgumentException
 
 /**
  * Premises to generate key
@@ -25,13 +22,12 @@ import kotlin.IllegalArgumentException
  * 3 - fetch account at external itau service
  * 4 - valid the key value
  */
-@AllOpen
 @ErrorHandler
 @Singleton
+@Validated
 class KeyRegisterServer(
-    @Inject val repository: KeyRepository,
-    @Inject val keyValueValidator: KeyValueValidator,
-    @Inject val itauClient: FetchClient
+    @Inject private val repository: KeyRepository,
+    @Inject private val service: KeyRegisterService
 ) : KeyManagerServiceGrpc.KeyManagerServiceImplBase() {
 
     private val LOGGER = LoggerFactory.getLogger(this.javaClass)
@@ -40,69 +36,38 @@ class KeyRegisterServer(
 
         LOGGER.info("New request: $request")
 
-        if (keyRegisterValid(request)) {
-            val account = submitForConsult(request)
-            when (request.typeKey) {
-                TypeKey.RANDOM_KEY -> {
-                    val randomKey = randomKeyGanerator(request)
-                    val toPersist = randomKey.toModel(account)
-                    repository.save(toPersist)
-                    responseObserver?.onNext(
-                        RegisterKeyResponse.newBuilder()
-                            .setPixId(randomKey.keyValue)
-                            .build()
-                    )
-                    responseObserver?.onCompleted()
-                    return
-                }
-                else -> {
-                    val key = keyGenerator(request)
-                    val toPersist = key.toModel(account)
-                    repository.save(toPersist)
-                    responseObserver?.onNext(
-                        RegisterKeyResponse.newBuilder()
-                            .setPixId(request.keyValue)
-                            .setUserId(request.userId)
-                            .build()
-                    )
-                    responseObserver?.onCompleted()
-                    return
-                }
-            }
-        }
-    }
+        val newKey = request.toKey()
 
-    private fun keyRegisterValid(request: RegisterKeyRequest): Boolean {
-        if (request.typeKey == TypeKey.UNKNOWN_TYPE_KEY || request.typeAccount == TypeAccount.UNKNOWN_TYPE_ACCOUNT)
-            throw IllegalArgumentException("invalid input data")
+        /**
+         *Validates the data informed for registration
+         */
+        service.keyRegisterValid(newKey)
 
-        if (request.typeKey == TypeKey.RANDOM_KEY && !request.keyValue.isNullOrEmpty())
-            throw IllegalArgumentException("value key must be null for random key type")
+        /**
+         * Consult accounts on the Itau external service
+         */
+        val account = service.submitForConsult(newKey)
 
-        val existsKey = when (request.typeKey) {
-            TypeKey.RANDOM_KEY -> repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
-            else -> repository.existsByKeyValue(request.keyValue)
-        }
-        if (existsKey) throw RegisterAlreadyExistsException("key value and type already register")
+        /**
+         * Transforms into object to BCB Request
+         */
+        val toBcbRequest = newKey.toBcb(account)
 
-        val validatorResult: Boolean = keyValueValidator.validator(request.keyValue)
-        if (!validatorResult && !request.typeKey.equals(TypeKey.RANDOM_KEY))
-            throw IllegalArgumentException("invalid input key value")
+        /**
+         * Send request to BCB external service
+         */
+        val bcbResponse = service.createPixKeyBcb(toBcbRequest)
 
-        return true
-    }
-
-    private fun submitForConsult(request: RegisterKeyRequest): AssociatedAccount {
-        val response = try {
-            itauClient
-                .fetchAccountsByType(request.userId, request.typeAccount.name)
-        } catch (e: HttpClientResponseException) {
-            println("Status: ${e.status}")
-            println("Message: ${e.message}")
-            null
-        } ?: throw IllegalStateException("account not found")
-
-        return response.toModel()
+        val key = newKey.toModel(bcbResponse, account)
+        repository.save(key)
+        responseObserver?.onNext(
+            RegisterKeyResponse.newBuilder()
+                .setPixId(key.keyValue)
+                .setUserId(key.userId)
+                .build()
+        )
+        responseObserver?.onCompleted()
+        return
     }
 }
 
@@ -110,20 +75,46 @@ class KeyRegisterServer(
  * Extension methods
  */
 
-private fun randomKeyGanerator(request: RegisterKeyRequest): KeyRegisterRequest {
-    return KeyRegisterRequest(
-        userId = request.userId,
-        typeKey = request.typeKey,
-        keyValue = UUID.randomUUID().toString(),
-        typeAccount = request.typeAccount
+private fun RegisterKeyRequest.toKey(): NewKey {
+    return NewKey(
+        userId = userId,
+        typeKey = typeKey,
+        keyValue = when (typeKey) {
+            TypeKey.UNKNOWN_TYPE_KEY -> null
+            TypeKey.RANDOM -> null
+            else -> keyValue
+        },
+        typeAccount = typeAccount
     )
 }
 
-private fun keyGenerator(request: RegisterKeyRequest): KeyRegisterRequest {
-    return KeyRegisterRequest(
-        userId = request.userId,
-        typeKey = request.typeKey,
-        keyValue = request.keyValue,
-        typeAccount = request.typeAccount
+private fun NewKey.toBcb(account: AssociatedAccount): CreatePixKeyRequest {
+    val bankAccountRequest = BankAccountRequest(
+        participant = account.ispb,
+        branch = account.agency,
+        accountNumber = account.accountNumber,
+        accountType = when (typeAccount) {
+            TypeAccount.CONTA_CORRENTE -> AccountType.CACC
+            TypeAccount.CONTA_POUPANCA -> AccountType.SVGS
+            else -> throw IllegalArgumentException("type account must no be blank")
+        }
+    )
+
+    val ownerRequest = OwnerRequest(
+        type = OwnerType.NATURAL_PERSON,
+        name = account.holderName,
+        taxIdNumber = account.holderCpf
+    )
+
+    return CreatePixKeyRequest(
+        keyType = this.typeKey,
+        key = when (typeKey) {
+            TypeKey.RANDOM -> null
+            TypeKey.UNKNOWN_TYPE_KEY -> null
+            else -> this.keyValue
+        },
+        bankAccountRequest,
+        ownerRequest
     )
 }
+

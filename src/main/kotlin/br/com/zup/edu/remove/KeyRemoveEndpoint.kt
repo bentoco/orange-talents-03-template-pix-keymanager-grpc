@@ -1,11 +1,11 @@
 package br.com.zup.edu.remove
 
-import br.com.zup.edu.KeyRepository
 import br.com.zup.edu.KeyRemoveServiceGrpc
+import br.com.zup.edu.KeyRepository
 import br.com.zup.edu.RemoveKeyRequest
 import br.com.zup.edu.RemoveKeyResponse
-import br.com.zup.edu.client.Account
-import br.com.zup.edu.client.FetchClient
+import br.com.zup.edu.itau.Account
+import br.com.zup.edu.itau.FetchClient
 import br.com.zup.edu.shared.ErrorHandler
 import br.com.zup.edu.shared.NotFoundClientException
 import io.grpc.stub.StreamObserver
@@ -20,9 +20,9 @@ import javax.inject.Singleton
 @ErrorHandler
 class KeyRemoveEndpoint
     (
-    @Inject val client: FetchClient,
-    @Inject val repository: KeyRepository,
-    @Inject val transactionManager: SynchronousTransactionManager<Connection>,
+    @Inject private val client: FetchClient,
+    @Inject private val repository: KeyRepository,
+    @Inject private val transactionManager: SynchronousTransactionManager<Connection>,
 ) :
     KeyRemoveServiceGrpc.KeyRemoveServiceImplBase() {
 

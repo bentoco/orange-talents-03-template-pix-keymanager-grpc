@@ -8,6 +8,7 @@ class AssociatedAccount(
     val holderName: String,
     val holderCpf: String,
     val agency: String,
-    val accountNumber: String
+    val accountNumber: String,
+    val ispb: String
 )
 
