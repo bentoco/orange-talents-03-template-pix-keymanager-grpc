@@ -4,11 +4,12 @@ import javax.persistence.Embeddable
 
 @Embeddable
 class AssociatedAccount(
-    val institution: String,
-    val holderName: String,
-    val holderCpf: String,
-    val agency: String,
+    val institutionName: String,
+    val institutionIspb: String,
+    val branch: String,
     val accountNumber: String,
-    val ispb: String
+    val ownerId: String,
+    val ownerName: String,
+    val ownerCpf: String
 )
 

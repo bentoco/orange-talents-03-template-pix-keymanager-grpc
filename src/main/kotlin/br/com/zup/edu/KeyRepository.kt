@@ -26,4 +26,8 @@ interface KeyRepository: JpaRepository<Key, String>{
      * @return key register
      */
     fun findByUserIdAndKeyValue(userId: String, keyValue: String): Optional<Key>
+
+    fun findByKeyValue(pixId: String): Optional<Key>
+
+    fun deleteByKeyValue(pixId: String)
 }

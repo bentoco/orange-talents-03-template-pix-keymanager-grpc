@@ -1,15 +1,10 @@
-package br.com.zup.edu.register;
+package br.com.zup.edu.register
 
-import br.com.zup.edu.KeyRepository
-import br.com.zup.edu.KeyValueValidator
-import br.com.zup.edu.TypeAccount
-import br.com.zup.edu.TypeKey
-import br.com.zup.edu.bcb.BcbClient
-import br.com.zup.edu.bcb.CreatePixKeyRequest
-import br.com.zup.edu.bcb.CreatePixKeyResponse
-import br.com.zup.edu.itau.FetchClient
+import br.com.zup.edu.*
+import br.com.zup.edu.bcb.*
+import br.com.zup.edu.itau.ItauClient
+import br.com.zup.edu.shared.NotFoundClientException
 import br.com.zup.edu.shared.RegisterAlreadyExistsException
-import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.validation.Validated
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,10 +15,40 @@ import javax.validation.Valid
 class KeyRegisterService(
     @Inject private val repository: KeyRepository,
     @Inject private val keyValueValidator: KeyValueValidator,
-    @Inject private val itauClient: FetchClient,
-    @Inject private val bcbClient: BcbClient
+    @Inject private val itauClient: ItauClient,
+    @Inject private val bcbClient: BcbClient,
 ) {
-    fun keyRegisterValid(@Valid request: NewKey): Boolean {
+    fun registerKey(
+        newKey: NewKey
+    ): Key {
+
+        keyRegisterValid(newKey)
+
+        val account = submitForConsult(newKey)
+
+        val request = newKey.toBcb(account)
+
+        val response = bcbClient.registerPixKeyBcb(request)
+
+        val key = newKey.toModel(response.body()!!, account)
+        when (response.status.code) {
+            201 -> repository.save(key)
+            422 -> throw RegisterAlreadyExistsException("the informed pix key exists already")
+            else -> throw Exception("unexpected error")
+        }
+        return key
+    }
+
+    private fun submitForConsult(request: NewKey): AssociatedAccount {
+        val response = itauClient.fetchAccountsByType(request.userId, request.typeAccount.toString())
+        when (response.status.code) {
+            200 -> return response.body()!!.toModel()
+            404 -> throw NotFoundClientException("account not found")
+            else -> throw Exception("unexpected error")
+        }
+    }
+
+    private fun keyRegisterValid(@Valid request: NewKey): Boolean {
         if (request.typeKey == TypeKey.UNKNOWN_TYPE_KEY || request.typeAccount == TypeAccount.UNKNOWN_TYPE_ACCOUNT)
             throw IllegalArgumentException("invalid input data")
 
@@ -42,27 +67,35 @@ class KeyRegisterService(
 
         return true
     }
-
-    fun createPixKeyBcb(request: CreatePixKeyRequest): CreatePixKeyResponse {
-        return try {
-            bcbClient.registerPixKeyBcb(request)
-        } catch (e: HttpClientResponseException) {
-            println("Status: ${e.status}")
-            println("Message: ${e.message}")
-            null
-        } ?: throw RegisterAlreadyExistsException("the informed pix key exists already")
-    }
-
-    fun submitForConsult(request: NewKey): AssociatedAccount {
-        val response = try {
-            itauClient
-                .fetchAccountsByType(request.userId, request.typeAccount.name)
-        } catch (e: HttpClientResponseException) {
-            println("Status: ${e.status}")
-            println("Message: ${e.message}")
-            null
-        } ?: throw IllegalStateException("account not found")
-
-        return response.toModel()
-    }
 }
+
+private fun NewKey.toBcb(account: AssociatedAccount): CreatePixKeyRequest {
+    val bankAccountRequest = BankAccountRequest(
+        participant = account.institutionIspb,
+        branch = account.branch,
+        accountNumber = account.accountNumber,
+        accountType = when (typeAccount) {
+            TypeAccount.CONTA_CORRENTE -> AccountType.CACC
+            TypeAccount.CONTA_POUPANCA -> AccountType.SVGS
+            else -> throw IllegalArgumentException("type account must no be blank")
+        }
+    )
+
+    val ownerRequest = OwnerRequest(
+        type = OwnerType.NATURAL_PERSON,
+        name = account.ownerName,
+        taxIdNumber = account.ownerCpf
+    )
+
+    return CreatePixKeyRequest(
+        keyType = this.typeKey,
+        key = when (typeKey) {
+            TypeKey.RANDOM -> null
+            TypeKey.UNKNOWN_TYPE_KEY -> null
+            else -> this.keyValue
+        },
+        bankAccountRequest,
+        ownerRequest
+    )
+}
+
