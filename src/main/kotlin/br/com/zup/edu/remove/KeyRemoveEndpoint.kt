@@ -1,29 +1,18 @@
 package br.com.zup.edu.remove
 
 import br.com.zup.edu.KeyRemoveServiceGrpc
-import br.com.zup.edu.KeyRepository
 import br.com.zup.edu.RemoveKeyRequest
 import br.com.zup.edu.RemoveKeyResponse
-import br.com.zup.edu.itau.Account
-import br.com.zup.edu.itau.FetchClient
+import br.com.zup.edu.bcb.DeletePixKeyRequest
 import br.com.zup.edu.shared.ErrorHandler
-import br.com.zup.edu.shared.NotFoundClientException
 import io.grpc.stub.StreamObserver
-import io.micronaut.http.client.exceptions.HttpClientResponseException
-import io.micronaut.transaction.SynchronousTransactionManager
 import org.slf4j.LoggerFactory
-import java.sql.Connection
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 @ErrorHandler
-class KeyRemoveEndpoint
-    (
-    @Inject private val client: FetchClient,
-    @Inject private val repository: KeyRepository,
-    @Inject private val transactionManager: SynchronousTransactionManager<Connection>,
-) :
+class KeyRemoveEndpoint(@Inject private val service: KeyRemoveService) :
     KeyRemoveServiceGrpc.KeyRemoveServiceImplBase() {
 
     private val logger = LoggerFactory.getLogger(this.javaClass)
@@ -32,30 +21,23 @@ class KeyRemoveEndpoint
 
         logger.error("New request: $request")
 
-        val register = request?.toRegister()
-        validIfExist(register!!.userId, client)
-        transactionManager.executeWrite {
-            val keyToRemove = repository.findByUserIdAndKeyValue(register.userId, register.pixId)
-            if (keyToRemove.isEmpty)
-                throw NotFoundClientException("register not found")
-            repository.deleteById(keyToRemove.get().id)
-        }
-        responseObserver?.onNext(RemoveKeyResponse.newBuilder().setMessage("key removed successful").build())
+        val keyToRemove = request!!.toKey()
+        service.validKey(keyToRemove)
+        service.removeKey(keyToRemove)
+
+        responseObserver?.onNext(
+            RemoveKeyResponse
+                .newBuilder()
+                .setMessage("key removed successful")
+                .setPixId(keyToRemove.pixId)
+                .setUserId(keyToRemove.userId)
+                .build()
+        )
         responseObserver?.onCompleted()
     }
 }
 
-private fun validIfExist(userId: String, client: FetchClient): Account {
-    return try {
-        client.fetchAccount(userId)
-    } catch (e: HttpClientResponseException) {
-        println("Status: ${e.status}")
-        println("Message: ${e.message}")
-        null
-    } ?: throw NotFoundClientException("account not found")
-}
-
-private fun RemoveKeyRequest.toRegister(): RegisterToRemove {
+private fun RemoveKeyRequest.toKey(): RegisterToRemove {
     if (userId.isBlank() || pixId.isBlank())
         throw IllegalArgumentException("pix and user must not be blank")
     return RegisterToRemove(

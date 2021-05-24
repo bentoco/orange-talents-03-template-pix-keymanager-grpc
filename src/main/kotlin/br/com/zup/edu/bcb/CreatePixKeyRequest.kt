@@ -21,3 +21,5 @@ data class OwnerRequest(
     val name: String,
     val taxIdNumber: String
 )
+
+

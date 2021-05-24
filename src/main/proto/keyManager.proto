@@ -49,4 +49,6 @@ message RemoveKeyRequest {
 
 message RemoveKeyResponse {
     string message = 1;
+    string pix_id = 2;
+    string user_id = 3;
 }
