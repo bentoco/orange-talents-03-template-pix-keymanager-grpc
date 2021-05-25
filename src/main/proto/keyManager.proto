@@ -22,6 +22,10 @@ service KeyConsultService {
     rpc consultKey(ConsultKeyRequest) returns (ConsultKeyResponse) {}
 }
 
+service KeyListService {
+    rpc listKey(ListKeyRequest) returns (ListKeyResponse) {}
+}
+
 enum TypeKey {
     UNKNOWN_TYPE_KEY = 0;
     RANDOM = 1;
@@ -89,4 +93,20 @@ message ConsultKeyResponse {
     string user_id = 1;
     string pix_id = 2;
     PixKey key = 3;
+}
+
+message ListKeyRequest {
+    string user_id = 1;
+}
+
+message ListKeyResponse {
+    message PixKey {
+        string pix_id = 1;
+        TypeKey type = 2;
+        string key = 3;
+        TypeAccount type_account = 4;
+        google.protobuf.Timestamp createdAt = 5;
+    }
+    string user_id = 1;
+    repeated PixKey keys = 2;
 }

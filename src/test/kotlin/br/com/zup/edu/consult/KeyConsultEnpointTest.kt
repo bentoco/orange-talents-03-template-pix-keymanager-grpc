@@ -62,7 +62,7 @@ internal class KeyConsultEnpointTest(
     }
 
     @AfterEach
-    internal fun teardown() {
+    internal fun cleanup() {
         repository.deleteAll()
     }
 
@@ -191,20 +191,6 @@ internal class KeyConsultEnpointTest(
         fun consultBlocking(@GrpcChannel(GrpcServerChannel.NAME) channel: ManagedChannel): KeyConsultServiceGrpc.KeyConsultServiceBlockingStub {
             return KeyConsultServiceGrpc.newBlockingStub(channel)
         }
-    }
-
-    private fun key(
-        type: TypeKey,
-        key: String = UUID.randomUUID().toString(),
-        userId: String = UUID.randomUUID().toString()
-    ): Key {
-        return Key(
-            userId = userId,
-            typeKey = type,
-            keyValue = key,
-            typeAccount = TypeAccount.CONTA_CORRENTE,
-            account = ACCOUNT
-        )
     }
 
     private fun pixKeyDetailsResponse() = PixKeyDetailsResponse(
