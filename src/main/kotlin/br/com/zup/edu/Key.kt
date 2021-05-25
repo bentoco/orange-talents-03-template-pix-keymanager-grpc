@@ -27,6 +27,13 @@ class Key(
     @field:Column(name = "typeAccount", nullable = false)
     val account: AssociatedAccount
 ) {
+    fun belongTo(userId: String): Boolean {
+        if (this.userId == userId) {
+            return true
+        }
+        return false
+    }
+
     @Id
     val id: String = UUID.randomUUID().toString()
 

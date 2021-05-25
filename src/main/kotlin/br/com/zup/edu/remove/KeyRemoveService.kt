@@ -15,7 +15,7 @@ class KeyRemoveService(
 ) {
 
     fun validKey(key: RegisterToRemove): Boolean {
-        val possibleKey = repository.findByKeyValue(key.pixId)
+        val possibleKey = repository.findById(key.pixId)
         if (possibleKey.isEmpty)
             throw NotFoundClientException("key not found")
 
@@ -29,7 +29,7 @@ class KeyRemoveService(
         val removeKeyRequest = request.toBcbRequest()
         val response = bcbClient.removePixKeyBcb(removeKeyRequest.key, removeKeyRequest)
         when (response.status.code) {
-            200 -> repository.deleteByKeyValue(request.pixId)
+            200 -> repository.deleteById(request.pixId)
             403 -> throw ForbiddenException("forbidden to perform operation")
             404 -> throw NotFoundClientException("pix key not found")
             else -> throw Exception("unexpected error")
@@ -37,10 +37,10 @@ class KeyRemoveService(
     }
 
     private fun RegisterToRemove.toBcbRequest(): DeletePixKeyRequest {
-        val account = repository.findByKeyValue(this.pixId)
+        val account = repository.findById(this.pixId)
         return DeletePixKeyRequest(
-            participant = account.get().account.institutionIspb,
-            key = this.pixId
+            participant = account.get().account.institutionIspb!!,
+            key = account.get().keyValue!!
         )
     }
 }

@@ -88,7 +88,7 @@ internal class KeyRegisterServerTest(
                 .build()
         )
         with(result) {
-            assertTrue(repository.existsByKeyValue(pixId))
+            assertTrue(repository.existsByKeyValue(CUSTOMER_KEY_VALUE))
             assertNotNull(pixId)
         }
 

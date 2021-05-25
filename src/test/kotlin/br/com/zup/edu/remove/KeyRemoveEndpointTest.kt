@@ -83,10 +83,12 @@ internal class KeyRemoveEndpointTest(
         Mockito.`when`(bcbClient.removePixKeyBcb(key.keyValue.toString(), deletePixKeyRequest()))
             .thenReturn(HttpResponse.ok(deletePixKeyResponse()))
 
+        val optional = repository.findByKeyValue(key.keyValue!!)
+
         val result = grpcClient.removeKey(
             RemoveKeyRequest.newBuilder()
                 .setUserId(CUSTOMER_ID)
-                .setPixId(CUSTOMER_KEY_VALUE)
+                .setPixId(optional.get().id)
                 .build()
         )
 
@@ -105,7 +107,7 @@ internal class KeyRemoveEndpointTest(
             grpcClient.removeKey(
                 RemoveKeyRequest.newBuilder()
                     .setUserId(UUID.randomUUID().toString())
-                    .setPixId(CUSTOMER_KEY_VALUE)
+                    .setPixId(repository.findByKeyValue(key.keyValue!!).get().id)
                     .build()
             )
         }

@@ -5,7 +5,7 @@ import io.micronaut.data.jpa.repository.JpaRepository
 import java.util.*
 
 @Repository
-interface KeyRepository: JpaRepository<Key, String>{
+interface KeyRepository : JpaRepository<Key, String> {
 
     /**
      * @param value
@@ -20,14 +20,6 @@ interface KeyRepository: JpaRepository<Key, String>{
      */
     fun existsByUserIdAndTypeKeyEquals(userId: String, typeKey: TypeKey): Boolean
 
-    /**
-     * @param userId
-     * @param keyValue
-     * @return key register
-     */
-    fun findByUserIdAndKeyValue(userId: String, keyValue: String): Optional<Key>
+    fun findByKeyValue(key: String): Optional<Key>
 
-    fun findByKeyValue(pixId: String): Optional<Key>
-
-    fun deleteByKeyValue(pixId: String)
 }

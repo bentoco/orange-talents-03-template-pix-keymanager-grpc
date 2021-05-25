@@ -70,7 +70,7 @@ class KeyRegisterService(
 
 fun NewKey.toBcb(account: AssociatedAccount): CreatePixKeyRequest {
     val bankAccountRequest = BankAccountRequest(
-        participant = account.institutionIspb,
+        participant = account.institutionIspb!!,
         branch = account.branch,
         accountNumber = account.accountNumber,
         accountType = when (typeAccount) {
