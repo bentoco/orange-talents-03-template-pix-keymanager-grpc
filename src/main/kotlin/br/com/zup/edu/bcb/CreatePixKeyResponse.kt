@@ -9,16 +9,3 @@ data class CreatePixKeyResponse(
     val owner: OwnerResponse,
     val createdAt: String
 )
-
-data class BankAccountResponse(
-    val participant: String,
-    val branch: String,
-    val accountNumber: String,
-    val accountType: AccountType
-)
-
-data class OwnerResponse(
-    val type: OwnerType,
-    val name: String,
-    val taxIdNumber: String
-)

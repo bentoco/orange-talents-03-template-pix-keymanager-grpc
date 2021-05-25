@@ -43,7 +43,7 @@ class KeyRegisterServer(
 
         responseObserver?.onNext(
             RegisterKeyResponse.newBuilder()
-                .setPixId(response.keyValue)
+                .setPixId(response.id)
                 .setUserId(response.userId)
                 .build()
         )

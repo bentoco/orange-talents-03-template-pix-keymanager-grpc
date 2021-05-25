@@ -7,6 +7,8 @@ option objc_class_prefix = "HLW";
 
 package br.com.zup.edu;
 
+import "google/protobuf/timestamp.proto";
+
 service KeyManagerService {
     rpc registerKey (RegisterKeyRequest) returns (RegisterKeyResponse) {}
 
@@ -14,6 +16,10 @@ service KeyManagerService {
 
 service KeyRemoveService {
     rpc removeKey(RemoveKeyRequest) returns (RemoveKeyResponse) {}
+}
+
+service KeyConsultService {
+    rpc consultKey(ConsultKeyRequest) returns (ConsultKeyResponse) {}
 }
 
 enum TypeKey {
@@ -51,4 +57,36 @@ message RemoveKeyResponse {
     string message = 1;
     string pix_id = 2;
     string user_id = 3;
+}
+
+message ConsultKeyRequest {
+    message PixIdFilter {
+        string user_id = 1;
+        string pix_id = 2;
+    }
+
+    oneof filter {
+        PixIdFilter pix_id = 1;
+        string key = 2;
+    }
+}
+
+message ConsultKeyResponse {
+    message PixKey {
+        message AccountInfo {
+            TypeAccount type = 1;
+            string institution = 2;
+            string owner_name = 3;
+            string owner_cpf = 4;
+            string branch = 5;
+            string account_number = 6;
+        }
+        TypeKey type = 1;
+        string key = 2;
+        AccountInfo account = 3;
+        google.protobuf.Timestamp createdAt = 4;
+    }
+    string user_id = 1;
+    string pix_id = 2;
+    PixKey key = 3;
 }

@@ -17,4 +17,9 @@ interface BcbClient {
     @Produces(MediaType.APPLICATION_XML)
     @Delete("/api/v1/pix/keys/{key}")
     fun removePixKeyBcb(@QueryValue key: String, @Body request: DeletePixKeyRequest): HttpResponse<DeletePixKeyResponse>
+
+    @Consumes(MediaType.APPLICATION_XML)
+    @Produces(MediaType.APPLICATION_XML)
+    @Get("/api/v1/pix/keys/{key}")
+    fun findByKey(@QueryValue key: String): HttpResponse<PixKeyDetailsResponse>
 }
