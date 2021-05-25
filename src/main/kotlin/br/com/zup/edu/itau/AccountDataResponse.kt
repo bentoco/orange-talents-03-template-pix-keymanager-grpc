@@ -18,7 +18,7 @@ data class AccountDataResponse(
             accountNumber = numero,
             ownerId = titular.id,
             ownerName = titular.nome,
-            ownerCpf = titular.nome
+            ownerCpf = titular.cpf
         )
     }
 }

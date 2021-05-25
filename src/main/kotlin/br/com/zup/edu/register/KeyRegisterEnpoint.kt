@@ -56,7 +56,7 @@ class KeyRegisterServer(
  * Extension methods
  */
 
-private fun RegisterKeyRequest.toKey(): NewKey {
+fun RegisterKeyRequest.toKey(): NewKey {
     return NewKey(
         userId = userId,
         typeKey = typeKey,

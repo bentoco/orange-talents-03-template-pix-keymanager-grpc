@@ -30,13 +30,15 @@ class KeyRegisterService(
 
         val response = bcbClient.registerPixKeyBcb(request)
 
-        val key = newKey.toModel(response.body()!!, account)
         when (response.status.code) {
-            201 -> repository.save(key)
-            422 -> throw RegisterAlreadyExistsException("the informed pix key exists already")
+            201 -> {
+                val key = newKey.toModel(response.body()!!, account)
+                repository.save(key)
+                return key
+            }
+            422 -> throw RegisterAlreadyExistsException("the informed pix key already exists")
             else -> throw Exception("unexpected error")
         }
-        return key
     }
 
     private fun submitForConsult(request: NewKey): AssociatedAccount {
@@ -52,9 +54,6 @@ class KeyRegisterService(
         if (request.typeKey == TypeKey.UNKNOWN_TYPE_KEY || request.typeAccount == TypeAccount.UNKNOWN_TYPE_ACCOUNT)
             throw IllegalArgumentException("invalid input data")
 
-        if (request.typeKey == TypeKey.RANDOM && !request.keyValue.isNullOrEmpty())
-            throw IllegalArgumentException("value key must be null for random key type")
-
         val existsKey = when (request.typeKey) {
             TypeKey.RANDOM -> repository.existsByUserIdAndTypeKeyEquals(request.userId, request.typeKey)
             else -> repository.existsByKeyValue(request.keyValue!!)
@@ -69,7 +68,7 @@ class KeyRegisterService(
     }
 }
 
-private fun NewKey.toBcb(account: AssociatedAccount): CreatePixKeyRequest {
+fun NewKey.toBcb(account: AssociatedAccount): CreatePixKeyRequest {
     val bankAccountRequest = BankAccountRequest(
         participant = account.institutionIspb,
         branch = account.branch,
