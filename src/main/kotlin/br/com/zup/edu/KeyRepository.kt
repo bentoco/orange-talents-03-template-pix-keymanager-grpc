@@ -20,6 +20,16 @@ interface KeyRepository : JpaRepository<Key, String> {
      */
     fun existsByUserIdAndTypeKeyEquals(userId: String, typeKey: TypeKey): Boolean
 
+    /**
+     * @param key
+     * @return a possible key
+     */
     fun findByKeyValue(key: String): Optional<Key>
+
+    /**
+     * @param userId
+     * @return a list of keys
+     */
+    fun findAllByUserId(userId: String): List<Key>
 
 }
